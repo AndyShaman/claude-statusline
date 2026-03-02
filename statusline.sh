@@ -21,7 +21,9 @@ if [ -f "$transcript" ]; then
     if [[ "$OSTYPE" == "darwin"* ]]; then
         start=$(stat -f %B "$transcript" 2>/dev/null)
     else
-        start=$(stat -c %Y "$transcript" 2>/dev/null)
+        start=$(stat -c %W "$transcript" 2>/dev/null)
+        # %W returns 0 if birth time unavailable, fallback to %Y
+        [ "${start:-0}" -eq 0 ] 2>/dev/null && start=$(stat -c %Y "$transcript" 2>/dev/null)
     fi
     if [ -n "$start" ]; then
         elapsed=$(( $(date +%s) - start ))
@@ -108,7 +110,11 @@ get_usage() {
     cache_time=0
 
     if [ -f "$CACHE_FILE" ]; then
-        cache_time=$(stat -f %m "$CACHE_FILE" 2>/dev/null || stat -c %Y "$CACHE_FILE" 2>/dev/null || echo 0)
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            cache_time=$(stat -f %m "$CACHE_FILE" 2>/dev/null || echo 0)
+        else
+            cache_time=$(stat -c %Y "$CACHE_FILE" 2>/dev/null || echo 0)
+        fi
     fi
 
     if [ $((now - cache_time)) -gt $CACHE_TTL ]; then
