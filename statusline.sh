@@ -3,8 +3,8 @@
 input=$(cat)
 
 # === Extract from JSON ===
-current_dir=$(echo "$input" | jq -r '.workspace.current_dir')
-project_dir=$(echo "$input" | jq -r '.workspace.project_dir')
+current_dir=$(echo "$input" | jq -r '.workspace.current_dir' | sed 's|\\|/|g')
+project_dir=$(echo "$input" | jq -r '.workspace.project_dir' | sed 's|\\|/|g')
 model_name=$(echo "$input" | jq -r '.model.display_name')
 used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0')
 context_size=$(echo "$input" | jq -r '.context_window.context_window_size // 200000')
@@ -14,7 +14,7 @@ mcps=$(echo "$input" | jq -r '.mcpServers // [] | length')
 # === Git branch ===
 cd "$current_dir" 2>/dev/null || cd "$project_dir" 2>/dev/null
 branch=$(git -c core.useReplaceRefs=false -c gc.auto=0 branch --show-current 2>/dev/null)
-project=$(basename "$current_dir")
+project="$current_dir"
 
 # === Session time ===
 if [ -f "$transcript" ]; then
@@ -81,9 +81,13 @@ fetch_usage() {
         # macOS: Keychain Access
         cred_json=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null)
     elif [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* || "$OSTYPE" == "win"* ]]; then
-        # Windows (Git Bash / MSYS2 / Cygwin): Credential Manager via PowerShell
-        cred_json=$(powershell.exe -NoProfile -Command \
-            '[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String((Get-StoredCredential -Target "Claude Code-credentials" -AsCredentialObject).Password))' 2>/dev/null)
+        # Windows (Git Bash / MSYS2 / Cygwin): credentials file or Credential Manager
+        if [ -f "$HOME/.claude/.credentials.json" ]; then
+            cred_json=$(cat "$HOME/.claude/.credentials.json" 2>/dev/null)
+        else
+            cred_json=$(powershell.exe -NoProfile -Command \
+                '[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String((Get-StoredCredential -Target "Claude Code-credentials" -AsCredentialObject).Password))' 2>/dev/null)
+        fi
     else
         # Linux: GNOME Keyring / KWallet via libsecret
         cred_json=$(secret-tool lookup service "Claude Code-credentials" 2>/dev/null)
