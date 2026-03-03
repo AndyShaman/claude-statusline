@@ -89,8 +89,12 @@ fetch_usage() {
                 '[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String((Get-StoredCredential -Target "Claude Code-credentials" -AsCredentialObject).Password))' 2>/dev/null)
         fi
     else
-        # Linux: GNOME Keyring / KWallet via libsecret
-        cred_json=$(secret-tool lookup service "Claude Code-credentials" 2>/dev/null)
+        # Linux: credentials file or GNOME Keyring / KWallet via libsecret
+        if [ -f "$HOME/.claude/.credentials.json" ]; then
+            cred_json=$(cat "$HOME/.claude/.credentials.json" 2>/dev/null)
+        else
+            cred_json=$(secret-tool lookup service "Claude Code-credentials" 2>/dev/null)
+        fi
     fi
 
     # Step 2: Extract OAuth access token from JSON
