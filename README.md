@@ -31,7 +31,7 @@
 | Project | `my-app` | Current directory name |
 | Git branch | `git:(main)` | Active branch (hidden outside git repos) |
 | MCP servers | `3 MCPs` | Connected MCP server count, read from plugin cache (hidden if 0) |
-| Session time | `⏱ 12m` | Session duration |
+| Session time | `⏱ 12m` | Session duration, detected from transcript JSONL timestamps (gap >30 min = new session) |
 
 Color coding: 🟢 > 50% — 🟡 20–50% — 🔴 < 20%.
 
