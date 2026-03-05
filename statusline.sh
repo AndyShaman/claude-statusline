@@ -17,27 +17,38 @@ branch=$(git -c core.useReplaceRefs=false -c gc.auto=0 branch --show-current 2>/
 project=$(basename "$current_dir")
 
 # === Session time ===
+# Claude Code reuses transcript files across sessions.
+# Detect current session start by finding the last gap >30 min in timestamps.
+session_time="0m"
 if [ -f "$transcript" ]; then
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        start=$(stat -f %B "$transcript" 2>/dev/null)
-    else
-        start=$(stat -c %W "$transcript" 2>/dev/null)
-        # %W returns 0 if birth time unavailable, fallback to %Y
-        [ "${start:-0}" -eq 0 ] 2>/dev/null && start=$(stat -c %Y "$transcript" 2>/dev/null)
-    fi
-    if [ -n "$start" ]; then
-        elapsed=$(( $(date +%s) - start ))
-        mins=$(( elapsed / 60 ))
-        if [ $mins -ge 60 ]; then
-            session_time="$((mins / 60))h $((mins % 60))m"
-        else
-            session_time="${mins}m"
-        fi
-    else
-        session_time="0m"
-    fi
-else
-    session_time="0m"
+    session_time=$(python3 - "$transcript" << 'PYEOF'
+import json, sys
+from datetime import datetime, timezone, timedelta
+try:
+    prev_ts = None
+    session_start = None
+    GAP = timedelta(minutes=30)
+    with open(sys.argv[1]) as f:
+        for line in f:
+            try:
+                ts_str = json.loads(line).get("timestamp")
+                if not ts_str:
+                    continue
+                ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                if prev_ts is None or (ts - prev_ts) > GAP:
+                    session_start = ts
+                prev_ts = ts
+            except Exception:
+                pass
+    if session_start:
+        elapsed = int((datetime.now(timezone.utc) - session_start).total_seconds() / 60)
+        print(f"{elapsed // 60}h {elapsed % 60}m" if elapsed >= 60 else f"{elapsed}m")
+    else:
+        print("0m")
+except Exception:
+    print("0m")
+PYEOF
+)
 fi
 
 # === Context bar ===
