@@ -8,7 +8,7 @@ project_dir=$(echo "$input" | jq -r '.workspace.project_dir' | sed 's|\\|/|g')
 model_name=$(echo "$input" | jq -r '.model.display_name')
 used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0')
 context_size=$(echo "$input" | jq -r '.context_window.context_window_size // 200000')
-transcript=$(echo "$input" | jq -r '.transcript_path')
+transcript=$(echo "$input" | jq -r '.transcript_path' | sed 's|\\|/|g')
 mcps=$(find "$HOME/.claude/plugins/cache" -name ".mcp.json" -exec cat {} + 2>/dev/null | jq -s '[.[] | keys[]] | length' 2>/dev/null || echo 0)
 
 # === Git branch ===
@@ -28,7 +28,7 @@ try:
     prev_ts = None
     session_start = None
     GAP = timedelta(minutes=30)
-    with open(sys.argv[1]) as f:
+    with open(sys.argv[1], encoding='utf-8') as f:
         for line in f:
             try:
                 ts_str = json.loads(line).get("timestamp")
