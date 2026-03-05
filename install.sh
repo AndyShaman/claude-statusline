@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-STATUSLINE_URL="https://raw.githubusercontent.com/AndyShaman/claude-statusline/main/statusline.sh"
+STATUSLINE_URL="https://raw.githubusercontent.com/SfilD/claude-statusline/main/statusline.sh"
 DEST="$HOME/.claude/statusline.sh"
 SETTINGS="$HOME/.claude/settings.json"
 
@@ -42,7 +42,7 @@ chmod +x "$DEST"
 # Update settings.json
 if [ -f "$SETTINGS" ]; then
     if jq -e '.statusLine' "$SETTINGS" &>/dev/null; then
-        warn "statusLine already configured in settings.json — skipping"
+        warn "statusLine already configured in settings.json - skipping"
         warn "Current config: $(jq -c '.statusLine' "$SETTINGS")"
     else
         tmp=$(mktemp)

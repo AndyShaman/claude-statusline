@@ -33,7 +33,7 @@
 | MCP servers | `3 MCPs` | Connected MCP server count, read from plugin cache (hidden if 0) |
 | Session time | `⏱ 12m` | Session duration, detected from transcript JSONL timestamps (gap >30 min = new session) |
 
-Color coding: 🟢 > 50% - 🟡 20–50% - 🔴 < 20%.
+Color coding: 🟢 > 50% - 🟡 20-50% - 🔴 < 20%.
 
 ## Installation
 
@@ -73,7 +73,7 @@ Restart Claude Code.
 
 ## How it works
 
-Claude Code runs the script after each assistant message, piping a JSON payload on stdin (model, context, paths, MCP servers). The script parses the JSON, fetches usage limits from the API, and outputs a formatted string with ANSI colors.
+Claude Code runs the script after each assistant message, piping a JSON payload on stdin (model, context, paths). The script parses the JSON, fetches usage limits from the API, and outputs a formatted string with ANSI colors.
 
 ---
 
@@ -132,7 +132,7 @@ If nothing prints, run `claude login` to re-authenticate.
 | Shows `H:?% W:?%` | API error - token may be expired, run `claude login` |
 | Numbers seem stuck | Cache is active (2 min) - wait or `rm ~/.claude/.usage-cache.json` |
 | Script won't run | Check `jq`: `echo '{}'\| jq .` - install if missing |
-| Session time wrong on Windows | Ensure transcript path has no backslashes - script converts them via `sed` |
+| Session time wrong on Windows | Update to the latest version of the script - it converts backslashes via `sed` automatically |
 
 ---
 
@@ -174,7 +174,7 @@ Comment out the corresponding `parts+=()` line at the end of the script.
 If you use an API key without OAuth:
 
 ```bash
-# Comment out line ~120:
+# Comment out the line:
 # usage_data=$(get_usage)
 ```
 
