@@ -3,7 +3,7 @@
 <h1 align="center">claude-statusline</h1>
 
 <p align="center">
-  Информативная строка состояния для Claude Code — модель, контекст, лимиты, git, время сессии.<br>
+  Информативная строка состояния для Claude Code - модель, контекст, лимиты, git, время сессии.<br>
   Кроссплатформенная. Одна команда для установки.
 </p>
 
@@ -33,7 +33,7 @@
 | MCP-серверы | `3 MCPs` | Количество подключённых MCP-серверов, считывается из кэша плагинов (скрыто при 0) |
 | Время сессии | `⏱ 12m` | Продолжительность текущей сессии, определяется по timestamps в JSONL-транскрипте (разрыв >30 мин = новая сессия) |
 
-Цветовая кодировка лимитов: 🟢 > 50% — 🟡 20–50% — 🔴 < 20%.
+Цветовая кодировка лимитов: 🟢 > 50% - 🟡 20–50% - 🔴 < 20%.
 
 ## Установка
 
@@ -77,7 +77,7 @@ Claude Code запускает скрипт после каждого сообщ
 
 ---
 
-## Лимиты использования — `H:` и `W:`
+## Лимиты использования - `H:` и `W:`
 
 Сегменты `H:78% 1h34m` и `W:87%` показывают остаток вашей квоты Claude Code (Pro/Max подписки).
 
@@ -86,7 +86,7 @@ Claude Code запускает скрипт после каждого сообщ
 | **H** (hourly) | Квота за скользящее 5-часовое окно. Сбрасывается постепенно. |
 | **W** (weekly) | Квота за скользящее 7-дневное окно. Сбрасывается постепенно. |
 
-Процент — это **остаток** (100% = полная ёмкость, 0% = лимит достигнут). Время после `H:` — когда окно полностью обновится.
+Процент - это **остаток** (100% = полная ёмкость, 0% = лимит достигнут). Время после `H:` - когда окно полностью обновится.
 
 ### Как скрипт получает данные
 
@@ -101,7 +101,7 @@ Claude Code запускает скрипт после каждого сообщ
 └─────────────────────┘     └──────────────────────┘     └─────────────────────┘
 ```
 
-**Шаг 1** — Когда вы входите через `claude login`, Claude Code сохраняет OAuth-токен. Скрипт читает его из `~/.claude/.credentials.json` (при наличии) или из защищённого хранилища ОС:
+**Шаг 1** - Когда вы входите через `claude login`, Claude Code сохраняет OAuth-токен. Скрипт читает его из `~/.claude/.credentials.json` (при наличии) или из защищённого хранилища ОС:
 
 ```json
 {
@@ -113,7 +113,7 @@ Claude Code запускает скрипт после каждого сообщ
 }
 ```
 
-**Шаг 2** — Запрос к API Anthropic:
+**Шаг 2** - Запрос к API Anthropic:
 
 ```bash
 curl -sf "https://api.anthropic.com/api/oauth/usage" \
@@ -136,18 +136,18 @@ curl -sf "https://api.anthropic.com/api/oauth/usage" \
 }
 ```
 
-- `utilization` — процент **использованной** квоты (0–100)
-- `resets_at` — ISO 8601 время полного сброса окна
+- `utilization` - процент **использованной** квоты (0–100)
+- `resets_at` - ISO 8601 время полного сброса окна
 
-**Шаг 3** — Расчёт: `remaining = 100 - utilization`, вычисление оставшегося времени, выбор цвета.
+**Шаг 3** - Расчёт: `remaining = 100 - utilization`, вычисление оставшегося времени, выбор цвета.
 
-**Кэширование** — API вызывается не чаще раза в 2 минуты. Кэш: `~/.claude/.usage-cache.json` (права 600).
+**Кэширование** - API вызывается не чаще раза в 2 минуты. Кэш: `~/.claude/.usage-cache.json` (права 600).
 
 ---
 
 ## Настройка по платформам
 
-Скрипт автоматически определяет ОС. На всех платформах сначала проверяется файл `~/.claude/.credentials.json`, затем — защищённое хранилище ОС.
+Скрипт автоматически определяет ОС. На всех платформах сначала проверяется файл `~/.claude/.credentials.json`, затем - защищённое хранилище ОС.
 
 | Платформа | Хранилище | Команда проверки |
 |-----------|-----------|-----------------|
@@ -162,20 +162,20 @@ curl -sf "https://api.anthropic.com/api/oauth/usage" \
 
 ```bash
 security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK — token expires:', d['claudeAiOauth'].get('expiresAt', '?'))"
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK - token expires:', d['claudeAiOauth'].get('expiresAt', '?'))"
 ```
 
 ### Linux
 
-Скрипт сначала проверяет файл `~/.claude/.credentials.json` (используется Claude Code в WSL и headless-окружениях). Если файла нет — читает токен через **libsecret** (GNOME Keyring / KWallet).
+Скрипт сначала проверяет файл `~/.claude/.credentials.json` (используется Claude Code в WSL и headless-окружениях). Если файла нет - читает токен через **libsecret** (GNOME Keyring / KWallet).
 
 ```bash
 # Проверить файловые креденшалы:
 cat ~/.claude/.credentials.json 2>/dev/null \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK — token expires:', d['claudeAiOauth'].get('expiresAt', '?'))"
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK - token expires:', d['claudeAiOauth'].get('expiresAt', '?'))"
 ```
 
-Если файла нет — установите `secret-tool` для keyring:
+Если файла нет - установите `secret-tool` для keyring:
 
 ```bash
 sudo apt install libsecret-tools   # Ubuntu / Debian
@@ -183,9 +183,9 @@ sudo dnf install libsecret         # Fedora
 sudo pacman -S libsecret           # Arch
 ```
 
-### Windows — Git Bash / MSYS2
+### Windows - Git Bash / MSYS2
 
-Скрипт сначала проверяет файл `~/.claude/.credentials.json`. Если файла нет — читает токен из **Windows Credential Manager** через PowerShell.
+Скрипт сначала проверяет файл `~/.claude/.credentials.json`. Если файла нет - читает токен из **Windows Credential Manager** через PowerShell.
 
 Для чтения через Credential Manager требуется PowerShell-модуль:
 
@@ -194,25 +194,25 @@ sudo pacman -S libsecret           # Arch
 Install-Module -Name CredentialManager -Force
 ```
 
-### Windows — WSL
+### Windows - WSL
 
-В WSL Claude Code хранит токен в файле `~/.claude/.credentials.json` (не в libsecret и не в Credential Manager). Скрипт читает его автоматически — **дополнительная настройка не требуется**.
+В WSL Claude Code хранит токен в файле `~/.claude/.credentials.json` (не в libsecret и не в Credential Manager). Скрипт читает его автоматически - **дополнительная настройка не требуется**.
 
 ```bash
 # Проверить:
 cat ~/.claude/.credentials.json 2>/dev/null \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK — token expires:', d['claudeAiOauth'].get('expiresAt', '?'))"
+  | python3 -c "import sys,json; d=json.load(sys.stdin); print('OK - token expires:', d['claudeAiOauth'].get('expiresAt', '?'))"
 ```
 
 ### Устранение проблем
 
 | Симптом | Решение |
 |---------|---------|
-| `H:` и `W:` не отображаются | Токен не найден — проверьте инструкции для вашей платформы |
-| Показывает `H:?% W:?%` | API вернул ошибку — токен мог истечь, выполните `claude login` |
-| Числа не обновляются | Кэш (2 мин) — подождите или удалите `~/.claude/.usage-cache.json` |
-| Скрипт не запускается | Проверьте `jq`: `echo '{}'\| jq .` — если ошибка, установите jq |
-| Время сессии неверно на Windows | Скрипт конвертирует backslash в пути транскрипта через `sed` — убедитесь в актуальной версии скрипта |
+| `H:` и `W:` не отображаются | Токен не найден - проверьте инструкции для вашей платформы |
+| Показывает `H:?% W:?%` | API вернул ошибку - токен мог истечь, выполните `claude login` |
+| Числа не обновляются | Кэш (2 мин) - подождите или удалите `~/.claude/.usage-cache.json` |
+| Скрипт не запускается | Проверьте `jq`: `echo '{}'\| jq .` - если ошибка, установите jq |
+| Время сессии неверно на Windows | Скрипт конвертирует backslash в пути транскрипта через `sed` - убедитесь в актуальной версии скрипта |
 
 Принудительное обновление:
 
@@ -281,7 +281,7 @@ curl.exe -fsSL https://raw.githubusercontent.com/SfilD/claude-statusline/main/st
   Set-Content "$env:USERPROFILE\.claude\statusline.sh" -NoNewline
 ```
 
-Перезапуск не нужен — скрипт запускается при каждом сообщении ассистента.
+Перезапуск не нужен - скрипт запускается при каждом сообщении ассистента.
 
 ## Удаление
 
@@ -294,4 +294,4 @@ rm ~/.claude/statusline.sh ~/.claude/.usage-cache.json
 
 ## Лицензия
 
-[MIT](LICENSE) — основан на [AndyShaman/claude-statusline](https://github.com/AndyShaman/claude-statusline)
+[MIT](LICENSE) - основан на [AndyShaman/claude-statusline](https://github.com/AndyShaman/claude-statusline)

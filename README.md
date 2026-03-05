@@ -3,7 +3,7 @@
 <h1 align="center">claude-statusline</h1>
 
 <p align="center">
-  A rich statusline for Claude Code — model, context, usage limits, git, session time.<br>
+  A rich statusline for Claude Code - model, context, usage limits, git, session time.<br>
   Cross-platform. One command to install.
 </p>
 
@@ -33,7 +33,7 @@
 | MCP servers | `3 MCPs` | Connected MCP server count, read from plugin cache (hidden if 0) |
 | Session time | `⏱ 12m` | Session duration, detected from transcript JSONL timestamps (gap >30 min = new session) |
 
-Color coding: 🟢 > 50% — 🟡 20–50% — 🔴 < 20%.
+Color coding: 🟢 > 50% - 🟡 20–50% - 🔴 < 20%.
 
 ## Installation
 
@@ -77,7 +77,7 @@ Claude Code runs the script after each assistant message, piping a JSON payload 
 
 ---
 
-## Usage limits — `H:` and `W:`
+## Usage limits - `H:` and `W:`
 
 The `H:78% 1h34m` and `W:87%` segments show remaining Claude Code rate limit quota (Pro/Max subscriptions).
 
@@ -128,11 +128,11 @@ If nothing prints, run `claude login` to re-authenticate.
 
 | Symptom | Fix |
 |---------|-----|
-| `H:` and `W:` missing | Token not found — verify with commands above |
-| Shows `H:?% W:?%` | API error — token may be expired, run `claude login` |
-| Numbers seem stuck | Cache is active (2 min) — wait or `rm ~/.claude/.usage-cache.json` |
-| Script won't run | Check `jq`: `echo '{}'\| jq .` — install if missing |
-| Session time wrong on Windows | Ensure transcript path has no backslashes — script converts them via `sed` |
+| `H:` and `W:` missing | Token not found - verify with commands above |
+| Shows `H:?% W:?%` | API error - token may be expired, run `claude login` |
+| Numbers seem stuck | Cache is active (2 min) - wait or `rm ~/.claude/.usage-cache.json` |
+| Script won't run | Check `jq`: `echo '{}'\| jq .` - install if missing |
+| Session time wrong on Windows | Ensure transcript path has no backslashes - script converts them via `sed` |
 
 ---
 
@@ -198,7 +198,7 @@ curl.exe -fsSL https://raw.githubusercontent.com/SfilD/claude-statusline/main/st
   Set-Content "$env:USERPROFILE\.claude\statusline.sh" -NoNewline
 ```
 
-No restart required — the script runs on every assistant message.
+No restart required - the script runs on every assistant message.
 
 ## Uninstall
 
@@ -211,4 +211,4 @@ Or inside Claude Code: `/statusline remove it`
 
 ## License
 
-[MIT](LICENSE) — based on [AndyShaman/claude-statusline](https://github.com/AndyShaman/claude-statusline)
+[MIT](LICENSE) - based on [AndyShaman/claude-statusline](https://github.com/AndyShaman/claude-statusline)
