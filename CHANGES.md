@@ -10,7 +10,7 @@
 
 ## Улучшение совместимости
 
-🔑 **Credentials file fallback** — оригинал на Windows требует `Install-Module CredentialManager`, на Linux — `secret-tool`. Многие этого не делают. Claude Code хранит токен в `~/.claude/.credentials.json` — добавил приоритетный fallback на файл перед обращением к Keychain/Credential Manager/libsecret. Работает на Windows и Linux без доп. зависимостей.
+🔑 **Credentials file fallback** — для чтения OAuth-токена оригинальный скрипт на Windows вызывает PowerShell-модуль `CredentialManager` (требуется отдельная установка: `Install-Module CredentialManager`), а на Linux — утилиту `secret-tool` (требуется отдельная установка: `sudo apt install libsecret-tools`). Если эти зависимости не установлены, сегменты `H:` и `W:` молча не отображаются. При этом Claude Code в WSL и большинстве headless-окружений хранит токен напрямую в файле `~/.claude/.credentials.json` — без keyring и Credential Manager. Добавлен приоритетный fallback: скрипт сначала читает этот файл, и только если его нет — обращается к системному хранилищу (Keychain / Credential Manager / libsecret). В результате лимиты работают без дополнительных зависимостей.
 
 🗂️ **Backslash в путях на Windows** — Claude Code передаёт пути с `\`, а `printf '%b'` интерпретирует `\c` как "стоп вывод" → путь обрезается. Исправление распространяется на все три поля: `current_dir`, `project_dir` и `transcript_path` — без последнего Python-скрипт расчёта времени сессии не мог открыть файл транскрипта на Windows.
 
