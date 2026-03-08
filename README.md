@@ -34,8 +34,8 @@
 | Недельный лимит | `W:87%` | Остаток квоты за скользящие 7 дней |
 | Проект | `my-app` | Имя текущей директории |
 | Git-ветка | `git:(main)` | Активная ветка (скрыта вне git-репозиториев) |
-| MCP-серверы | `3 MCPs` | Количество подключённых MCP-серверов (скрыто при 0) |
-| Время сессии | `⏱ 12m` | Продолжительность текущей сессии |
+| MCP-серверы | `3 MCPs` | Количество MCP-серверов из settings и plugin cache (скрыто при 0) |
+| Время сессии | `⏱ 12m` | Продолжительность текущей сессии (определяется по timestamps в JSONL-транскрипте) |
 
 Цветовая кодировка лимитов: 🟢 > 50% — 🟡 20–50% — 🔴 < 20%.
 
@@ -88,7 +88,7 @@ bash install.sh
 
 ## Как работает
 
-Claude Code запускает скрипт после каждого сообщения ассистента, передавая на stdin JSON с данными сессии (модель, контекст, пути, MCP-серверы). Скрипт парсит JSON, получает лимиты из API и выводит форматированную строку с ANSI-цветами.
+Claude Code запускает скрипт после каждого сообщения ассистента, передавая на stdin JSON с данными сессии (модель, контекст, пути). Скрипт парсит JSON, получает лимиты из API и выводит форматированную строку с ANSI-цветами.
 
 ---
 
@@ -182,7 +182,7 @@ security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null \
 
 ### Linux
 
-Токен хранится через **libsecret** (GNOME Keyring / KWallet). Скрипт читает его через `secret-tool`.
+Скрипт сначала проверяет файл `~/.claude/.credentials.json`. Если файла нет — читает токен через **libsecret** (GNOME Keyring / KWallet) с помощью `secret-tool`.
 
 **Установка `secret-tool`:**
 
@@ -226,9 +226,9 @@ cred_json=$(cat "$HOME/.claude/.credentials" 2>/dev/null)
 
 ### Windows — Git Bash / MSYS2
 
-Токен хранится в **Windows Credential Manager**. Скрипт читает его через PowerShell.
+Скрипт сначала проверяет файл `~/.claude/.credentials.json`. Если файла нет — читает токен из **Windows Credential Manager** через PowerShell.
 
-**Требуется PowerShell-модуль:**
+**PowerShell-модуль (если файл credentials отсутствует):**
 
 ```powershell
 # Запустите PowerShell от администратора:
@@ -275,6 +275,7 @@ cred_json=$(/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoPro
 | `H:` и `W:` не отображаются | Токен не найден — проверьте инструкции для вашей платформы |
 | Показывает `H:?% W:?%` | API вернул ошибку — токен мог истечь, выполните `claude login` |
 | Числа не обновляются | Кэш (2 мин) — подождите или удалите `~/.claude/.usage-cache.json` |
+| Время сессии неверно (Windows) | Убедитесь в актуальной версии скрипта — она конвертирует backslash в путях автоматически |
 | Скрипт не запускается | Проверьте `jq`: `echo '{}' \| jq .` — если ошибка, установите jq |
 
 Принудительное обновление:
@@ -370,8 +371,8 @@ rm ~/.claude/statusline.sh ~/.claude/.usage-cache.json
 | Weekly limit | `W:87%` | Remaining 7-day usage quota |
 | Project | `my-app` | Current directory name |
 | Git branch | `git:(main)` | Active branch (hidden outside git repos) |
-| MCP servers | `3 MCPs` | Connected MCP server count (hidden if 0) |
-| Session time | `⏱ 12m` | Session duration |
+| MCP servers | `3 MCPs` | MCP server count from settings and plugin cache (hidden if 0) |
+| Session time | `⏱ 12m` | Session duration (detected from transcript JSONL timestamps) |
 
 Color coding: 🟢 > 50% — 🟡 20–50% — 🔴 < 20%.
 
@@ -434,13 +435,11 @@ Percentage shows **remaining** capacity (100% = full, 0% = limit reached). Time 
 | Platform | Storage | Command |
 |----------|---------|---------|
 | **macOS** | Keychain Access | `security find-generic-password -s "Claude Code-credentials" -w` |
-| **Linux** | libsecret (GNOME Keyring / KWallet) | `secret-tool lookup service "Claude Code-credentials"` |
-| **Windows** (Git Bash) | Credential Manager | `powershell.exe ... Get-StoredCredential -Target "Claude Code-credentials"` |
-| **WSL** | Same as Linux | `secret-tool lookup service "Claude Code-credentials"` |
+| **Linux** | `~/.claude/.credentials.json` → libsecret fallback | `cat ~/.claude/.credentials.json` |
+| **Windows** (Git Bash) | `~/.claude/.credentials.json` → Credential Manager fallback | `cat ~/.claude/.credentials.json` |
+| **WSL** | `~/.claude/.credentials.json` | `cat ~/.claude/.credentials.json` |
 
-> **Linux requires** `libsecret-tools` — `sudo apt install libsecret-tools`
->
-> **Windows requires** the `CredentialManager` PowerShell module — `Install-Module -Name CredentialManager -Force`
+> **Linux / Windows / WSL**: the script checks `~/.claude/.credentials.json` first. If absent, falls back to libsecret on Linux (`sudo apt install libsecret-tools`) or Credential Manager on Windows (`Install-Module -Name CredentialManager -Force`).
 
 Verify your token is accessible:
 
@@ -468,6 +467,8 @@ If nothing prints, run `claude login` to re-authenticate.
 | `H:` and `W:` missing | Token not found — verify with commands above |
 | Shows `H:?% W:?%` | API error — token may be expired, run `claude login` |
 | Numbers seem stuck | Cache is active (2 min) — wait or `rm ~/.claude/.usage-cache.json` |
+| Script won't run | Check `jq`: `echo '{}' \| jq .` — install if missing |
+| Session time wrong (Windows) | Update to the latest version — it converts backslashes via `sed` automatically |
 
 ## Customization
 

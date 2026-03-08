@@ -3,13 +3,22 @@
 input=$(cat)
 
 # === Extract from JSON ===
-current_dir=$(echo "$input" | jq -r '.workspace.current_dir')
-project_dir=$(echo "$input" | jq -r '.workspace.project_dir')
+current_dir=$(echo "$input" | jq -r '.workspace.current_dir' | sed 's|\\|/|g')
+project_dir=$(echo "$input" | jq -r '.workspace.project_dir' | sed 's|\\|/|g')
 model_name=$(echo "$input" | jq -r '.model.display_name')
 used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0')
 context_size=$(echo "$input" | jq -r '.context_window.context_window_size // 200000')
-transcript=$(echo "$input" | jq -r '.transcript_path')
-mcps=$(echo "$input" | jq -r '.mcpServers // [] | length')
+transcript=$(echo "$input" | jq -r '.transcript_path' | sed 's|\\|/|g')
+mcps=$({
+    # User-configured MCP servers from settings files
+    for f in "$HOME/.claude/settings.json" "$HOME/.claude/settings.local.json" \
+             "$project_dir/.claude/settings.json" "$project_dir/.claude/settings.local.json"; do
+        [ -f "$f" ] && jq -r '.mcpServers // {} | keys[]' "$f" 2>/dev/null
+    done
+    # Plugin-provided MCP servers from installed plugin cache
+    find "$HOME/.claude/plugins/cache" -name ".mcp.json" -exec jq -r 'keys[]' {} \; 2>/dev/null
+} | sort -u | wc -l)
+mcps=$((mcps + 0))  # ensure numeric
 
 # === Git branch ===
 cd "$current_dir" 2>/dev/null || cd "$project_dir" 2>/dev/null
@@ -17,25 +26,44 @@ branch=$(git -c core.useReplaceRefs=false -c gc.auto=0 branch --show-current 2>/
 project=$(basename "$current_dir")
 
 # === Session time ===
+# Claude Code reuses transcript files across sessions.
+# Detect current session start by finding the last gap >30 min in timestamps.
+session_time="0m"
 if [ -f "$transcript" ]; then
-    if [[ "$OSTYPE" == "darwin"* ]]; then
-        start=$(stat -f %B "$transcript" 2>/dev/null)
-    else
-        start=$(stat -c %Y "$transcript" 2>/dev/null)
-    fi
-    if [ -n "$start" ]; then
-        elapsed=$(( $(date +%s) - start ))
-        mins=$(( elapsed / 60 ))
-        if [ $mins -ge 60 ]; then
-            session_time="$((mins / 60))h $((mins % 60))m"
-        else
-            session_time="${mins}m"
-        fi
-    else
-        session_time="0m"
-    fi
-else
-    session_time="0m"
+    session_time=$(python3 - "$transcript" << 'PYEOF'
+import json, sys
+from datetime import datetime, timezone, timedelta
+try:
+    prev_ts = None
+    session_start = None
+    GAP = timedelta(minutes=30)
+    filepath = sys.argv[1]
+    size = __import__('os').path.getsize(filepath)
+    with open(filepath, encoding='utf-8', errors='replace') as f:
+        # For large files, seek to last 500KB (covers even multi-hour sessions)
+        if size > 500000:
+            f.seek(size - 500000)
+            f.readline()  # skip partial line after seek
+        for line in f:
+            try:
+                ts_str = json.loads(line).get("timestamp")
+                if not ts_str:
+                    continue
+                ts = datetime.fromisoformat(ts_str.replace("Z", "+00:00"))
+                if prev_ts is None or (ts - prev_ts) > GAP:
+                    session_start = ts
+                prev_ts = ts
+            except Exception:
+                pass
+    if session_start:
+        elapsed = int((datetime.now(timezone.utc) - session_start).total_seconds() / 60)
+        print(f"{elapsed // 60}h {elapsed % 60}m" if elapsed >= 60 else f"{elapsed}m")
+    else:
+        print("0m")
+except Exception:
+    print("0m")
+PYEOF
+)
 fi
 
 # === Context bar ===
@@ -79,12 +107,20 @@ fetch_usage() {
         # macOS: Keychain Access
         cred_json=$(security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null)
     elif [[ "$OSTYPE" == "msys"* || "$OSTYPE" == "cygwin"* || "$OSTYPE" == "win"* ]]; then
-        # Windows (Git Bash / MSYS2 / Cygwin): Credential Manager via PowerShell
-        cred_json=$(powershell.exe -NoProfile -Command \
-            '[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String((Get-StoredCredential -Target "Claude Code-credentials" -AsCredentialObject).Password))' 2>/dev/null)
+        # Windows (Git Bash / MSYS2 / Cygwin): credentials file or Credential Manager
+        if [ -f "$HOME/.claude/.credentials.json" ]; then
+            cred_json=$(cat "$HOME/.claude/.credentials.json" 2>/dev/null)
+        else
+            cred_json=$(powershell.exe -NoProfile -Command \
+                '[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String((Get-StoredCredential -Target "Claude Code-credentials" -AsCredentialObject).Password))' 2>/dev/null)
+        fi
     else
-        # Linux: GNOME Keyring / KWallet via libsecret
-        cred_json=$(secret-tool lookup service "Claude Code-credentials" 2>/dev/null)
+        # Linux: credentials file or GNOME Keyring / KWallet via libsecret
+        if [ -f "$HOME/.claude/.credentials.json" ]; then
+            cred_json=$(cat "$HOME/.claude/.credentials.json" 2>/dev/null)
+        else
+            cred_json=$(secret-tool lookup service "Claude Code-credentials" 2>/dev/null)
+        fi
     fi
 
     # Step 2: Extract OAuth access token from JSON
@@ -108,7 +144,11 @@ get_usage() {
     cache_time=0
 
     if [ -f "$CACHE_FILE" ]; then
-        cache_time=$(stat -f %m "$CACHE_FILE" 2>/dev/null || stat -c %Y "$CACHE_FILE" 2>/dev/null || echo 0)
+        if [[ "$OSTYPE" == "darwin"* ]]; then
+            cache_time=$(stat -f %m "$CACHE_FILE" 2>/dev/null || echo 0)
+        else
+            cache_time=$(stat -c %Y "$CACHE_FILE" 2>/dev/null || echo 0)
+        fi
     fi
 
     if [ $((now - cache_time)) -gt $CACHE_TTL ]; then
