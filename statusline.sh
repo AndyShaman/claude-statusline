@@ -40,9 +40,9 @@ try:
     filepath = sys.argv[1]
     size = __import__('os').path.getsize(filepath)
     with open(filepath, encoding='utf-8', errors='replace') as f:
-        # For large files, seek to last 500KB (covers even multi-hour sessions)
-        if size > 500000:
-            f.seek(size - 500000)
+        # For large files, seek to last 5MB (covers even multi-hour sessions)
+        if size > 5000000:
+            f.seek(size - 5000000)
             f.readline()  # skip partial line after seek
         for line in f:
             try:
