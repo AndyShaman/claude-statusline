@@ -6,8 +6,11 @@ input=$(cat)
 current_dir=$(echo "$input" | jq -r '.workspace.current_dir' | sed 's|\\|/|g')
 project_dir=$(echo "$input" | jq -r '.workspace.project_dir' | sed 's|\\|/|g')
 model_name=$(echo "$input" | jq -r '.model.display_name')
-used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // 0')
+effort=$(echo "$input" | jq -r '.effort.level // empty')
 context_size=$(echo "$input" | jq -r '.context_window.context_window_size // 200000')
+# Actual tokens in context (input + cache) — more precise than used_percentage*size
+context_tokens=$(echo "$input" | jq -r '.context_window.current_usage
+    | if . then (.input_tokens + .cache_creation_input_tokens + .cache_read_input_tokens) else 0 end')
 transcript=$(echo "$input" | jq -r '.transcript_path' | sed 's|\\|/|g')
 mcps=$({
     # User-configured MCP servers from settings files
@@ -67,8 +70,23 @@ PYEOF
 fi
 
 # === Context bar ===
-used_int=$(printf "%.0f" "$used_pct")
-context_tokens=$(echo "$used_pct $context_size" | awk '{printf "%.0f", $1 * $2 / 100}')
+# Effective limit = auto-compact window if configured (env or settings), else model window.
+# The statusline JSON only carries the model window, so read the setting ourselves.
+compact_window="${CLAUDE_CODE_AUTO_COMPACT_WINDOW:-}"
+if [ -z "$compact_window" ]; then
+    for f in "$HOME/.claude/settings.json" "$HOME/.claude/settings.local.json" \
+             "$project_dir/.claude/settings.json" "$project_dir/.claude/settings.local.json"; do
+        [ -f "$f" ] || continue
+        v=$(jq -r '.autoCompactWindow // empty' "$f" 2>/dev/null)
+        [ -n "$v" ] && compact_window="$v"
+    done
+fi
+if [ -n "$compact_window" ] && [ "$compact_window" -gt 0 ] 2>/dev/null \
+   && [ "$compact_window" -lt "$context_size" ] 2>/dev/null; then
+    context_size="$compact_window"
+fi
+used_int=$(( context_tokens * 100 / context_size ))
+[ "$used_int" -gt 100 ] && used_int=100
 if [ "$context_tokens" -ge 1000 ] 2>/dev/null; then
     tokens_display="$((context_tokens / 1000))K"
 else
@@ -219,7 +237,7 @@ except Exception:
 fi
 
 # === Build output ===
-parts=("[${model_name}]")
+parts=("[${model_name}${effort:+ · $effort}]")
 parts+=("${bar} ${used_int}% (${tokens_display}/${context_display})")
 
 if [ -n "$limits_part" ]; then

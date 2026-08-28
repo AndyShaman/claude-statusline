@@ -28,7 +28,7 @@
 
 | Сегмент | Пример | Описание |
 |---------|--------|----------|
-| Модель | `[Opus 4.6]` | Текущая модель |
+| Модель | `[Opus 4.6 · high]` | Текущая модель и уровень effort (если CLI его передаёт) |
 | Контекст | `━━━━━━ 25% (50K/200K)` | Прогресс-бар использования контекста с цветовой индикацией |
 | 5-часовой лимит | `H:78% 1h34m` | Остаток квоты за скользящие 5 часов + время до сброса |
 | Недельный лимит | `W:87%` | Остаток квоты за скользящие 7 дней |
@@ -365,7 +365,7 @@ rm ~/.claude/statusline.sh ~/.claude/.usage-cache.json
 
 | Segment | Example | Description |
 |---------|---------|-------------|
-| Model | `[Opus 4.6]` | Current model name |
+| Model | `[Opus 4.6 · high]` | Current model name and effort level (when reported by the CLI) |
 | Context bar | `━━━━━━ 25% (50K/200K)` | Visual progress bar with token count. Green → yellow → red |
 | Hourly limit | `H:78% 1h34m` | Remaining 5-hour usage quota + time until reset |
 | Weekly limit | `W:87%` | Remaining 7-day usage quota |
