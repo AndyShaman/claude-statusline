@@ -238,14 +238,12 @@ except Exception:
 
     # Model-scoped weekly limit (Fable on Max plans: capped at 50% of the weekly quota).
     # The API reports it as limits[] kind=weekly_scoped with the model's display name; shown only when present.
-    scoped=$(echo "$usage_data" | jq -r '[.limits[]? | select(.kind == "weekly_scoped")][0] | select(. != null) | "\(.percent)\t\(.scope.model.display_name // "Model")"')
-    if [ -n "$scoped" ]; then
-        scoped_used=${scoped%%$'\t'*}
-        scoped_name=${scoped#*$'\t'}
-        scoped_left=$(python3 -c "import sys; print(int(100 - float(sys.argv[1])))" "$scoped_used" 2>/dev/null || echo "?")
+    while IFS=$'\t' read -r scoped_used scoped_name; do
+        [ -n "$scoped_used" ] || continue
+        scoped_left=$(python3 -c "import sys; print(int(100 - float(sys.argv[1])))" "$scoped_used" 2>/dev/null) || continue
         scoped_color=$(usage_color "$scoped_left")
         limits_part="${limits_part} · ${scoped_color}${scoped_name} ${scoped_left}%\033[0m"
-    fi
+    done < <(echo "$usage_data" | jq -r '.limits[]? | select(.kind == "weekly_scoped" and .percent != null) | "\(.percent)\t\(.scope.model.display_name // "Model")"' 2>/dev/null)
 fi
 
 # === Build output ===
