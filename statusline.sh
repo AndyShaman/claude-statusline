@@ -229,10 +229,22 @@ except Exception:
     five_color=$(usage_color "$five_h_left")
     week_color=$(usage_color "$week_left")
 
+    # Layout: "5h 87% ↻3h32m · 7d 96% · Fable 94%" — window label, remaining %, time to reset.
     if [ -n "$time_left" ]; then
-        limits_part="${five_color}H:${five_h_left}% ${time_left}\033[0m ${week_color}W:${week_left}%\033[0m"
+        limits_part="${five_color}5h ${five_h_left}% ↻${time_left}\033[0m · ${week_color}7d ${week_left}%\033[0m"
     else
-        limits_part="${five_color}H:${five_h_left}%\033[0m ${week_color}W:${week_left}%\033[0m"
+        limits_part="${five_color}5h ${five_h_left}%\033[0m · ${week_color}7d ${week_left}%\033[0m"
+    fi
+
+    # Model-scoped weekly limit (Fable on Max plans: capped at 50% of the weekly quota).
+    # The API reports it as limits[] kind=weekly_scoped with the model's display name; shown only when present.
+    scoped=$(echo "$usage_data" | jq -r '[.limits[]? | select(.kind == "weekly_scoped")][0] | select(. != null) | "\(.percent)\t\(.scope.model.display_name // "Model")"')
+    if [ -n "$scoped" ]; then
+        scoped_used=${scoped%%$'\t'*}
+        scoped_name=${scoped#*$'\t'}
+        scoped_left=$(python3 -c "import sys; print(int(100 - float(sys.argv[1])))" "$scoped_used" 2>/dev/null || echo "?")
+        scoped_color=$(usage_color "$scoped_left")
+        limits_part="${limits_part} · ${scoped_color}${scoped_name} ${scoped_left}%\033[0m"
     fi
 fi
 

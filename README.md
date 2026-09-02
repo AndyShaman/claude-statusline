@@ -30,8 +30,9 @@
 |---------|--------|----------|
 | Модель | `[Opus 4.6 · high]` | Текущая модель и уровень effort (если CLI его передаёт) |
 | Контекст | `━━━━━━ 25% (50K/200K)` | Прогресс-бар использования контекста с цветовой индикацией |
-| 5-часовой лимит | `H:78% 1h34m` | Остаток квоты за скользящие 5 часов + время до сброса |
-| Недельный лимит | `W:87%` | Остаток квоты за скользящие 7 дней |
+| 5-часовой лимит | `5h 78% ↻1h34m` | Остаток квоты за скользящие 5 часов + время до полного сброса окна |
+| Недельный лимит | `7d 87%` | Остаток квоты за скользящие 7 дней |
+| Лимит модели | `Fable 94%` | Остаток отдельного недельного лимита на модель (на Max-планах Fable ограничен 50 % недельной квоты). Показывается, только если API его отдаёт |
 | Проект | `my-app` | Имя текущей директории |
 | Git-ветка | `git:(main)` | Активная ветка (скрыта вне git-репозиториев) |
 | MCP-серверы | `3 MCPs` | Количество MCP-серверов из settings и plugin cache (скрыто при 0) |
@@ -92,16 +93,17 @@ Claude Code запускает скрипт после каждого сообщ
 
 ---
 
-## Лимиты использования — `H:` и `W:`
+## Лимиты использования — `5h`, `7d` и `Fable`
 
-Сегменты `H:78% 1h34m` и `W:87%` показывают остаток вашей квоты Claude Code (Pro/Max подписки).
+Сегменты `5h 78% ↻1h34m · 7d 87% · Fable 94%` показывают остаток вашей квоты Claude Code (Pro/Max подписки).
 
 | Лимит | Расшифровка |
 |-------|-------------|
-| **H** (hourly) | Квота за скользящее 5-часовое окно. Сбрасывается постепенно. |
-| **W** (weekly) | Квота за скользящее 7-дневное окно. Сбрасывается постепенно. |
+| **5h** | Квота за скользящее 5-часовое окно. Сбрасывается постепенно. |
+| **7d** | Квота за скользящее 7-дневное окно. Сбрасывается постепенно. |
+| **Fable** (или другое имя модели) | Отдельный недельный лимит на модель. На Max-планах Fable-модели могут потратить не больше 50 % недельной квоты — это и есть тот потолок, в который упираешься раньше общего `7d`. Сегмент появляется, только если API вернул `limits[]` с `kind: weekly_scoped`. |
 
-Процент — это **остаток** (100% = полная ёмкость, 0% = лимит достигнут). Время после `H:` — когда окно полностью обновится.
+Процент — это **остаток** (100% = полная ёмкость, 0% = лимит достигнут). Время после `↻` — когда 5-часовое окно полностью обновится.
 
 ### Как скрипт получает данные
 
@@ -272,8 +274,9 @@ cred_json=$(/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoPro
 
 | Симптом | Решение |
 |---------|---------|
-| `H:` и `W:` не отображаются | Токен не найден — проверьте инструкции для вашей платформы |
-| Показывает `H:?% W:?%` | API вернул ошибку — токен мог истечь, выполните `claude login` |
+| `5h` и `7d` не отображаются | Токен не найден — проверьте инструкции для вашей платформы |
+| Показывает `5h ?% · 7d ?%` | API вернул ошибку — токен мог истечь, выполните `claude login` |
+| Нет сегмента `Fable` | На вашем плане нет отдельного лимита на модель (например, Pro) — это нормально |
 | Числа не обновляются | Кэш (2 мин) — подождите или удалите `~/.claude/.usage-cache.json` |
 | Время сессии неверно (Windows) | Убедитесь в актуальной версии скрипта — она конвертирует backslash в путях автоматически |
 | Скрипт не запускается | Проверьте `jq`: `echo '{}' \| jq .` — если ошибка, установите jq |
@@ -367,8 +370,9 @@ rm ~/.claude/statusline.sh ~/.claude/.usage-cache.json
 |---------|---------|-------------|
 | Model | `[Opus 4.6 · high]` | Current model name and effort level (when reported by the CLI) |
 | Context bar | `━━━━━━ 25% (50K/200K)` | Visual progress bar with token count. Green → yellow → red |
-| Hourly limit | `H:78% 1h34m` | Remaining 5-hour usage quota + time until reset |
-| Weekly limit | `W:87%` | Remaining 7-day usage quota |
+| 5-hour limit | `5h 78% ↻1h34m` | Remaining 5-hour usage quota + time until the window fully resets |
+| Weekly limit | `7d 87%` | Remaining 7-day usage quota |
+| Model limit | `Fable 94%` | Remaining model-scoped weekly quota (on Max plans Fable models are capped at 50% of the weekly limit). Shown only when the API reports one |
 | Project | `my-app` | Current directory name |
 | Git branch | `git:(main)` | Active branch (hidden outside git repos) |
 | MCP servers | `3 MCPs` | MCP server count from settings and plugin cache (hidden if 0) |
@@ -412,16 +416,17 @@ Restart Claude Code.
 | `python3` | Time calculations | preinstalled | preinstalled | `winget install python` |
 | `curl` | API requests | preinstalled | preinstalled | included in Git Bash |
 
-## How usage limits work (`H:` and `W:`)
+## How usage limits work (`5h`, `7d` and `Fable`)
 
-The `H:78% 1h34m` and `W:87%` segments show remaining Claude Code rate limit quota (Pro/Max subscriptions).
+The `5h 78% ↻1h34m · 7d 87% · Fable 94%` segments show remaining Claude Code rate limit quota (Pro/Max subscriptions).
 
 | Limit | Meaning |
 |-------|---------|
-| **H** (hourly) | Rolling 5-hour window quota |
-| **W** (weekly) | Rolling 7-day window quota |
+| **5h** | Rolling 5-hour window quota |
+| **7d** | Rolling 7-day window quota |
+| **Fable** (or another model name) | Model-scoped weekly quota. On Max plans Fable models may use at most 50% of the weekly limit — this is the ceiling you hit before the overall `7d`. Shown only when the API returns `limits[]` with `kind: weekly_scoped`. |
 
-Percentage shows **remaining** capacity (100% = full, 0% = limit reached). Time after `H:` shows when the 5-hour window fully resets.
+Percentage shows **remaining** capacity (100% = full, 0% = limit reached). Time after `↻` shows when the 5-hour window fully resets.
 
 ### How it works under the hood
 
@@ -464,8 +469,9 @@ If nothing prints, run `claude login` to re-authenticate.
 
 | Symptom | Fix |
 |---------|-----|
-| `H:` and `W:` missing | Token not found — verify with commands above |
-| Shows `H:?% W:?%` | API error — token may be expired, run `claude login` |
+| `5h` and `7d` missing | Token not found — verify with commands above |
+| Shows `5h ?% · 7d ?%` | API error — token may be expired, run `claude login` |
+| No `Fable` segment | Your plan has no model-scoped limit (e.g. Pro) — that is normal |
 | Numbers seem stuck | Cache is active (2 min) — wait or `rm ~/.claude/.usage-cache.json` |
 | Script won't run | Check `jq`: `echo '{}' \| jq .` — install if missing |
 | Session time wrong (Windows) | Update to the latest version — it converts backslashes via `sed` automatically |
